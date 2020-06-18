@@ -5,13 +5,15 @@ set(JAVA_INCLUDE_PATH2 NotNeeded)
 set(JAVA_AWT_INCLUDE_PATH NotNeeded)
 find_package(JNI REQUIRED)
 set(LUA_SOURCE_DIR "../lua-src")
-include_directories(${LUA_SOURCE_DIR})
+set(LUASOCKET_SOURCE_DIR "../luasocket-src")
+include_directories(${LUA_SOURCE_DIR} ${LUASOCKET_SOURCE_DIR})
 if (JNI_FOUND)
 	include_directories(${JNI_INCLUDE_DIRS})
 endif (JNI_FOUND)
 
 file(GLOB SOURCES 
 	${LUA_SOURCE_DIR}/*.c
+	${LUASOCKET_SOURCE_DIR}/*.c
 	src/main/native/lua-core.c
 )
 
