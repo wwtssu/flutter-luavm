@@ -90,3 +90,27 @@ await Luavm.close("name");
 
 Errors will be thrown as _LuaError_ which contains error message as a string.
 
+
+#### Use http and json
+
+* http: luasocket
+* json: dkjson
+
+```lua
+local socket = _G["socket"]
+local json = _G["json"]
+
+local response_body = {}
+local res, code, response_headers = socket.http.request{
+    url = myUrl,
+    method = "GET",
+    sink = ltn12.sink.table(response_body)
+}
+local jsonData = table.concat(response_body)
+local obj, pos, err = json.decode (jsonData, 1, nil)
+if not err then
+   -- dosomething
+end
+response_body = nil
+
+```
