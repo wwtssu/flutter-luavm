@@ -17,8 +17,20 @@ class Luavm {
 
   // use a list to store vm names
   static List<String> _vms = [];
-
   // open a new Lua vm with name, return true when succeed
+  static List<String> _socketLua = [
+    "packages/luavm/lua/socket.lua",
+    "packages/luavm/lua/url.lua",
+    "packages/luavm/lua/ltn12.lua",
+    "packages/luavm/lua/mime.lua",
+    "packages/luavm/lua/headers.lua",
+    "packages/luavm/lua/http.lua",
+    "packages/luavm/lua/dkjson.lua"
+    //"packages/luavm/lua/mbox.lua",
+    //"packages/luavm/lua/smtp.lua",
+    //"packages/luavm/lua/ftp.lua",
+  ];
+
   static Future<bool> open(String name) async {
     bool success = false;
     try {
@@ -29,6 +41,10 @@ class Luavm {
           _vms.add(null);
         }
         _vms[idx] = name;
+      }
+      for(int i = 0;i<_socketLua.length;i++){
+        String code = await rootBundle.loadString(_socketLua[i]);
+        await eval(name, code);
       }
       success = true;
     } on PlatformException catch (e) {

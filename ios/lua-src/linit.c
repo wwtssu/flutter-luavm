@@ -34,7 +34,8 @@
 #include "lualib.h"
 #include "lauxlib.h"
 
-
+#include "luasocket.h"
+#include "mime.h"
 /*
 ** these libs are loaded by lua.c and are readily available to any Lua
 ** program
@@ -52,6 +53,8 @@ static const luaL_Reg loadedlibs[] = {
 #if defined(LUA_COMPAT_BITLIB)
   {LUA_BITLIBNAME, luaopen_bit32},
 #endif
+  {"socket", luaopen_socket_core},
+  {"mime", luaopen_mime_core},
   {NULL, NULL}
 };
 

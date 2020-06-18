@@ -33,9 +33,18 @@ flutter:
         pluginClass: LuavmPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - lua/ftp.lua
+    - lua/headers.lua
+    - lua/http.lua
+    - lua/ltn12.lua
+    - lua/mbox.lua
+    - lua/mime.lua
+    - lua/smtp.lua
+    - lua/socket.lua
+    - lua/tp.lua
+    - lua/url.lua
+    - lua/dkjson.lua
   #
   # For details regarding assets in packages, see
   # https://flutter.dev/assets-and-images/#from-packages
