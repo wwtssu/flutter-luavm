@@ -113,19 +113,22 @@ class Luavm {
     }
   }
 
-  static Map<String,Completer> _completerList = {};
+  static Map<String,List<Completer>> _completerList = {};
 
   static Future<List> evalAsync(String name, String code) async {
     try {
       if (name != null && _vms.contains(name)) {
-        Completer<List> completer;
-        completer = _completerList[name];
-        if(completer != null) await completer.future;
-        completer = new Completer();
-        _completerList[name] = completer;
+        Completer<List> myCompleter = Completer<List>();
+        if(_completerList[name] == null) _completerList[name] = List<Completer>();
+        _completerList[name].add(myCompleter);
+        Completer<List> firstCompleter = _completerList[name][0];
+        while(firstCompleter != myCompleter){
+          await firstCompleter.future;
+          firstCompleter = _completerList[name][0];
+        }
         await _channel.invokeMethod(
             'evalAsync', <String, dynamic>{"id": _vms.indexOf(name), "code": code});
-        return completer.future;
+        return myCompleter.future;
       } else {
         throw LuaError("VM[$name] not exists");
       }
@@ -137,10 +140,11 @@ class Luavm {
   callback(value) async{
     String name = _vms[value["id"]];
     List res = value["res"];
+    Completer firstCompleter = _completerList[name][0];
+    _completerList[name] = _completerList[name].sublist(1);
     if (res[0] != 'OK') {
-      _completerList[name].completeError(LuaError(json.encode(res)));
+      firstCompleter.completeError(LuaError(json.encode(res)));
     }
-    else _completerList[name].complete(res.sublist(1));
-    _completerList.remove(name);
+    else firstCompleter.complete(res.sublist(1));
   }
 }
