@@ -1,12 +1,15 @@
-Flutter Lua VM Plugin
+Flutter Lua VM Plugin With HTTP & JSON
 =====================
 
 [![Pub package](https://img.shields.io/pub/v/luavm.svg)](https://pub.dev/packages/luavm)
 [![Dartdoc reference](https://img.shields.io/badge/dartdoc-reference-blue.svg)](https://pub.dev/documentation/luavm/latest/)
 
+Fork from [tgarm/flutter-luavm](https://github.com/tgarm/flutter-luavm)
+
 A Flutter plugin provides Lua virtual machine
 
 This plugin is inspired by [flutter_lua](https://github.com/drydart/flutter_lua), a Go based Lua implementation for Flutter.
+
 
 ## Getting Started
 
@@ -113,4 +116,19 @@ if not err then
 end
 response_body = nil
 
+```
+
+#### Use Network Async
+
+Run this code when app start
+```dart
+Luavm.Init();
+```
+And replace 
+```dart
+Luavm.eval("name","code");
+```
+to
+```dart
+Luavm.evalAsync("name","code");
 ```
