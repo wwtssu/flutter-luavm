@@ -75,4 +75,46 @@ static lua_State *vms[MAX_VMS] = {NULL};
     return [NSArray arrayWithArray:rets];
 }
 
+- (void)evalAsync:(int)idx withCode:(NSString *)code withCallback:(FlutterBasicMessageChannel*) callback {
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        const char *restr = "Fail";
+        NSMutableArray *rets = [[NSMutableArray alloc] init];
+        if(idx>=0&&idx<MAX_VMS){
+            lua_State *L = vms[idx];
+            if(L){
+                int base = lua_gettop(L);
+                int res = luaL_dostring(L, [code UTF8String]);
+                int top = lua_gettop(L);
+                if(res>0){
+                    restr = lua_tostring(L,-1);
+                    lua_pop(L,1);
+                    top = lua_gettop(L);
+                }else{
+                    restr = "OK";
+                }
+                if(top>0){
+                    for(int i=0;i<top;i++){
+                        const char *str = lua_tostring(L, i-top);
+                        if(str){
+                            [rets addObject:[NSString stringWithUTF8String:str]];
+                        }
+                    }
+                }
+                if(top>base){
+                    lua_pop(L, top-base);
+                }
+            }else{
+                restr = "VM Not exist";
+            }
+        }else{
+            restr = "VM ID out of range";
+        }
+        [rets insertObject:[NSString stringWithUTF8String:restr] atIndex:0];
+        [callback sendMessage:@{
+            @"id":[NSNumber numberWithInt:idx],
+            @"res":[NSArray arrayWithArray:rets]
+        }];
+    });
+}
+
 @end

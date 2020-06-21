@@ -9,8 +9,14 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
-
+import io.flutter.plugin.common.BasicMessageChannel;
+import io.flutter.plugin.common.StandardMessageCodec;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import android.os.Handler;
+import android.os.Message;
 
 /** LuavmPlugin */
 public class LuavmPlugin implements FlutterPlugin, MethodCallHandler {
@@ -21,11 +27,24 @@ public class LuavmPlugin implements FlutterPlugin, MethodCallHandler {
   /// and unregister it
   /// when the Flutter Engine is detached from the Activity
   private MethodChannel channel;
+  private static BasicMessageChannel<Object> callback;
+
+  private static Handler handler;
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
     channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "com.github.tgarm.luavm");
     channel.setMethodCallHandler(this);
+    callback = new BasicMessageChannel<>(flutterPluginBinding.getFlutterEngine().getDartExecutor(), "com.github.tgarm.luavm.callback", new StandardMessageCodec());
+    handler = new Handler() {
+      @Override
+      public void handleMessage(Message msg) {
+        super.handleMessage(msg);
+        if(msg.what == 1){
+          callback.send(msg.obj);
+        }
+      }
+    };
   }
 
   // This static function is optional and equivalent to onAttachedToEngine. It
@@ -45,30 +64,63 @@ public class LuavmPlugin implements FlutterPlugin, MethodCallHandler {
   public static void registerWith(Registrar registrar) {
     final MethodChannel channel = new MethodChannel(registrar.messenger(), "com.github.tgarm.luavm");
     channel.setMethodCallHandler(new LuavmPlugin());
+    callback = new BasicMessageChannel<>(registrar.messenger(), "com.github.tgarm.luavm.callback", new StandardMessageCodec());
+    handler = new Handler() {
+      @Override
+      public void handleMessage(Message msg) {
+        super.handleMessage(msg);
+        if(msg.what == 1){
+          Log.e("test",msg.obj.toString());
+          callback.send(msg.obj);
+        }
+      }
+    };
   }
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     int id;
+    String code;
     switch (call.method) {
       case "open":
         id = LuaJNI.open();
         result.success(id);
         break;
-    case "close":
+      case "close":
         id = ((Integer)call.arguments).intValue();
         Boolean bres = LuaJNI.close(id);
         result.success(bres);
         break;
       case "eval":
         id = call.argument("id");
-        String code = call.argument("code");
+        code = call.argument("code");
         String restr[] = LuaJNI.eval(id, code);
         ArrayList<String> res = new ArrayList<String>();
         for (int i = 0; i < restr.length; i++) {
           res.add(restr[i]);
         }
         result.success(res);
+        break;
+      case "evalAsync":
+        id = call.argument("id");
+        code = call.argument("code");
+        final int Id = id;
+        final String Code = code;
+        new Thread(() -> {
+            String restring[] = LuaJNI.eval(Id, Code);
+            ArrayList<String> ret = new ArrayList<String>();
+            for (int i = 0; i < restring.length; i++) {
+              ret.add(restring[i]);
+            }
+            Map event = new LinkedHashMap();
+            event.put("id",Id);
+            event.put("res",ret);
+            Message msg=new Message();
+            msg.what = 1;
+            msg.obj = event;
+            handler.sendMessage(msg);
+          }).start();
+        result.success(true);
         break;
       default:
         result.notImplemented();

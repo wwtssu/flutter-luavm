@@ -15,6 +15,22 @@ class Luavm {
   static const MethodChannel _channel =
       const MethodChannel('com.github.tgarm.luavm');
 
+  static const BasicMessageChannel<dynamic> _callback =
+      const BasicMessageChannel("com.github.tgarm.luavm.callback", StandardMessageCodec());
+
+  factory Luavm.Init() => _getInstance();
+  static Luavm get instance => _getInstance();
+  static Luavm _instance;
+  Luavm._internal(){
+    _callback.setMessageHandler((value) => callback(value));
+  }
+  static Luavm _getInstance() {
+    if (_instance == null) {
+      _instance = new Luavm._internal();
+    }
+    return _instance;
+  }
+
   // use a list to store vm names
   static List<String> _vms = [];
   // open a new Lua vm with name, return true when succeed
@@ -95,5 +111,36 @@ class Luavm {
     } on PlatformException catch (e) {
       throw LuaError.from(e);
     }
+  }
+
+  static Map<String,Completer> _completerList = {};
+
+  static Future<List> evalAsync(String name, String code) async {
+    try {
+      if (name != null && _vms.contains(name)) {
+        Completer<List> completer;
+        completer = _completerList[name];
+        if(completer != null) await completer.future;
+        completer = new Completer();
+        _completerList[name] = completer;
+        await _channel.invokeMethod(
+            'evalAsync', <String, dynamic>{"id": _vms.indexOf(name), "code": code});
+        return completer.future;
+      } else {
+        throw LuaError("VM[$name] not exists");
+      }
+    } on PlatformException catch (e) {
+      throw LuaError.from(e);
+    }
+  }
+
+  callback(value) async{
+    String name = _vms[value["id"]];
+    List res = value["res"];
+    if (res[0] != 'OK') {
+      _completerList[name].completeError(LuaError(json.encode(res)));
+    }
+    else _completerList[name].complete(res.sublist(1));
+    _completerList.remove(name);
   }
 }
